@@ -1,5 +1,15 @@
 import torch
+from torchtext.vocab import GloVe, vocab
 
+def permute(tensor):
+    """
+    Permutes all dimensions of a tensor.
+
+    Input : tensor of dimension (d1, d2, ... dn)
+    Output : tensor of dimension (dn, ..., d2, d1)
+    """
+    n = len(tensor.shape)
+    return torch.permute(tensor, list(range(n-1, -1, -1)))
 
 class DiscontinuedGRU(torch.nn.Module):
     """
@@ -70,4 +80,75 @@ class HierarchicalEncoder(torch.nn.Module):
         hs = self.sentence_level(hp)[0] # shape (sequence_length, batch_size, 2*hidden_size)
         Hi = hs[-1, ...] # last timestep: shape (batch_size, 2*hidden_size)
 
-        return Hi
+        return hs, Hi
+
+
+class SoftGuidedAttentionDecoder(torch.nn.Module):
+    def __init__(self, hidden_size=128, sequence_length=5):
+        super(SoftGuidedAttentionDecoder, self).__init__()
+        self.sequence_length = sequence_length
+        self.attention = torch.nn.Linear(4*hidden_size, 1)
+        self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size, )
+
+    def forward(self, X):
+        ## X is the output of the encoder
+        ## Its shape is (sequence_length, batch_size, 2*hidden_size)
+        
+        output = torch.zeros(*X.shape) # (sequence_length, batch_size, 2*hidden_size)
+        hidden_state = X[-1,...] # (batch_size, 2*hidden_size)
+
+        for t in range(self.sequence_length): # (batch_size, sequence_length)
+            #  "h^d_{t-1}" is the same for all j so we repeat is along the corresponding axis
+            expanded_hidden_state = torch.stack([hidden_state for _ in range(self.sequence_length)], dim=0) # (sequence_length, batch_size, 2*hidden_size)
+            attention_layer_input = torch.cat([expanded_hidden_state, X], dim=-1) # (sequence_length, batch_size, 4*hidden_state)
+
+            attention_weights = self.attention(attention_layer_input).squeeze(dim=-1) # (sequence_length, batch_size) -> a[j,n] correspond à alpha_{t,j} pour la n-ième observation
+            attention_weights += torch.Tensor([ int(j==t) for j in range(self.sequence_length)]).repeat(X.shape[1], 1).transpose(0,1)
+            attention_weights = torch.nn.functional.softmax(attention_weights, dim=0)
+
+            context_vectors = ( permute(permute(X)*permute(attention_weights)) ).sum(dim=0) # (batch_size, 2*hidden_size) since mutliplication is broadcast along third axis, and dimension 0 (sequence_length) is removed by the sum
+            output[t,...] = self.recurrent_cell(context_vectors) # (batch_size, 2*hidden_size)
+
+            hidden_state = output[t,...]
+        
+        # shape (sequence_length, batch_size, 2*hidden_size)
+        return output
+
+
+class Seq2SeqModel(torch.nn.Module):
+    # Embedding, encoder, decoder, linear+softmax
+
+    def __init__(self, nb_classes, pretrained_embeddings, sequence_length=5, hidden_size=128):
+        super(Seq2SeqModel, self).__init__()
+
+        # Embedding
+        self.embedder = torch.nn.Embedding.from_pretrained(pretrained_embeddings, freeze=True)
+
+        # Encoder
+        self.encoder = HierarchicalEncoder(
+            input_size = pretrained_embeddings.shape[1],
+            sequence_length = sequence_length,
+            hidden_size = hidden_size,
+        )
+
+        # Decoder
+        self.decoder = SoftGuidedAttentionDecoder(
+            hidden_size = hidden_size,
+            sequence_length = sequence_length,
+        )
+
+        # Output
+        self.linear = torch.nn.Linear(2*hidden_size, nb_classes)
+
+    def forward(self, X):
+        # X has shape (batch_size, sequence_length, max_sentence_length)
+        P = torch.ones(*X.shape[:-1])
+        # P has shape (batch_size, sequence_length)
+        embedded = self.embedder(X) # (batch_size, sequence_length, max_sentence_length, embedding_dim)
+        encoded = self.encoder(embedded, P)[0] # (sequence_length, batch_size, 2*hidden_size)
+        decoded = self.decoder(encoded) # (sequence_length, batch_size, 2*hidden_size)
+        scores = self.linear(decoded) # (sequence_length, batch_size, nb_classes)
+        probas = torch.nn.functional.softmax(scores, dim=-1) # (sequence_length, batch_size, nb_classes)
+        return probas.transpose(0, 1) # (batch_size, sequence_length, nb_classes)
+
+
