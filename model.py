@@ -34,7 +34,7 @@ class DiscontinuedGRU(torch.nn.Module):
         h = torch.zeros(sequence_len, batch_size, self.hidden_size) # h contains the hidden states
         for t in range(sequence_len):
             # We reset the hidden input if the speaker changes
-            hidden_input = (1-D[t,:])*h[t-1,...] if t>0 else torch.zeros(batch_size, self.hidden_size)
+            hidden_input = permute(permute(1-D[t,:])*permute(h[t-1,...])) if t>0 else torch.zeros(batch_size, self.hidden_size)
             h[t,...] = self.forward_cell(X[t,...], hidden_input)
         
 
@@ -42,7 +42,7 @@ class DiscontinuedGRU(torch.nn.Module):
         hb = torch.zeros(sequence_len, batch_size, self.hidden_size) # h contains the hidden states
         for t in reversed(range(sequence_len)):
             # We reset the hidden input if the speaker changes
-            hidden_input = (1-D[t+1,:])*hb[t+1,...] if t<sequence_len-1 else torch.zeros(batch_size, self.hidden_size)
+            hidden_input = permute(permute(1-D[t+1,:])*permute(hb[t+1,...])) if t<sequence_len-1 else torch.zeros(batch_size, self.hidden_size)
             hb[t,...] = self.backward_cell(X[t,...], hidden_input)
         
         # Output has shape (sequence_len, batch_size, 2*hidden_size)
