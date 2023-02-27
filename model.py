@@ -59,7 +59,7 @@ class HierarchicalEncoder(torch.nn.Module):
     
 
     def forward(self, X, P):
-        # X is a tensor shape (batch_size, sequence_length, max_sentence_length, input_size), where each word is represented by a one-hot vector of size input_size
+        # X is a tensor shape (batch_size, sequence_length, max_sentence_length, input_size), where each word is represented by a vector of size input_size
         # P is a binary tensor of shape (batch_size, sequence_length) indicating when the speaker changes
 
         ## Word-level encoding
