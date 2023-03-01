@@ -50,11 +50,17 @@ class DiscontinuedGRU(torch.nn.Module):
 
 
 class HierarchicalEncoder(torch.nn.Module):
-    def __init__(self, input_size, sequence_length=5, hidden_size=128):
+    def __init__(self, input_size, sequence_length=5, hidden_size=128, persona_level=True):
         super(HierarchicalEncoder, self).__init__()
         self.sequence_length = sequence_length
+
         self.word_level = torch.nn.GRU(input_size, hidden_size, bidirectional=True, batch_first=True)
-        self.persona_level = DiscontinuedGRU(2*hidden_size, hidden_size)
+        
+        if persona_level:
+            self.persona_level = DiscontinuedGRU(2*hidden_size, hidden_size)
+        else:
+            self.persona_level = None
+
         self.sentence_level = torch.nn.GRU(2*hidden_size, hidden_size, bidirectional=True)
     
 
@@ -74,7 +80,10 @@ class HierarchicalEncoder(torch.nn.Module):
 
 
         ## Persona-level encoding
-        hp = self.persona_level(hw, P.transpose(0, 1))
+        if self.persona_level is not None:
+            hp = self.persona_level(hw, P.transpose(0, 1))
+        else:
+            hp = hw
 
         ## Sentence-level encoding
         hs = self.sentence_level(hp)[0] # shape (sequence_length, batch_size, 2*hidden_size)
