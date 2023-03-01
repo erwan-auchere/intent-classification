@@ -6,3 +6,23 @@ The interaction between individuals is at the center of many organizations. In o
 Among these methods, we have the "linear Conditional Random Field (CRF)," which is a discriminant model (modeling is done using conditional distributions for sequence data, it allows modeling the dependence between each state (a dialogue intent) and all input sequences). We can also mention classification algorithm methods for short texts, Bag-of-Words (BoW), and  Continuous Bag-of-Words (CBoW) trained via a SVM model.
 
 To take into account the complex dependencies between words in the representation of a statement, recurrent neural networks have been introduced. More recently, LSTMs and their simplification Gated Recurrent Unit (GRU) have been used for intention classification. In our work, we propose to use methods based on neural networks for intention classification.
+
+
+This implementation is partially based on:
+- [Pierre Colombo, Emile Chapuis, Matteo Manica, Emmanuel Vignon, Giovanna Varni, Chloe Clavel, "Guiding attention in Sequence-to-sequence models for Dialogue Act prediction", arXiv:2002.08801](https://arxiv.org/abs/2002.08801)
+
+
+### Dataset
+
+[The Switchboard Dialog Act Corpus (Daily dialog)](https://huggingface.co/datasets/daily_dialog) is used for training.
+
+[
+
+Data is split into train, valid and test subsets according to
+
+### Reproducing the results
+
+1. Clone the repo: `git clone --`
+2. U
+3. Install requirements: `pip install -r /requirements.txt`
+4. Run `test.ipynb` notebook
