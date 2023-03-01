@@ -14,7 +14,7 @@ This implementation is partially based on:
 
 ### Dataset
 
-[The Switchboard Dialog Act Corpus (Daily dialog)](https://huggingface.co/datasets/daily_dialog) is used for training.
+[The Daily dialog](https://huggingface.co/datasets/daily_dialog) is used for training.
 
 [
 
@@ -23,6 +23,5 @@ Data is split into train, valid and test subsets according to
 ### Reproducing the results
 
 1. Clone the repo: `git clone --`
-2. U
-3. Install requirements: `pip install -r /requirements.txt`
-4. Run `test.ipynb` notebook
+2. Install requirements: `pip install -r /requirements.txt`
+3. Run `test.ipynb` notebook
