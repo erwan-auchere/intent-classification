@@ -127,7 +127,7 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
 class Seq2SeqModel(torch.nn.Module):
     # Embedding, encoder, decoder, linear+softmax
 
-    def __init__(self, nb_classes, pretrained_embeddings, sequence_length=5, hidden_size=128):
+    def __init__(self, nb_classes, pretrained_embeddings, sequence_length=5, hidden_size=128, persona_level=True):
         super(Seq2SeqModel, self).__init__()
 
         # Embedding
@@ -138,6 +138,7 @@ class Seq2SeqModel(torch.nn.Module):
             input_size = pretrained_embeddings.shape[1],
             sequence_length = sequence_length,
             hidden_size = hidden_size,
+            persona_level = persona_level,
         )
 
         # Decoder
