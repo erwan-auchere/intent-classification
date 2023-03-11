@@ -1,5 +1,4 @@
 import torch
-from torchtext.vocab import GloVe, vocab
 
 def permute(tensor):
     """
@@ -104,7 +103,7 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
         ## Its shape is (sequence_length, batch_size, 2*hidden_size)
         
         output = torch.zeros(*X.shape) # (sequence_length, batch_size, 2*hidden_size)
-        hidden_state = X[-1,...] # (batch_size, 2*hidden_size)
+        hidden_state = X[-1,...].clone() # (batch_size, 2*hidden_size)
 
         for t in range(self.sequence_length): # (batch_size, sequence_length)
             #  "h^d_{t-1}" is the same for all j so we repeat is along the corresponding axis
@@ -118,7 +117,7 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
             context_vectors = ( permute(permute(X)*permute(attention_weights)) ).sum(dim=0) # (batch_size, 2*hidden_size) // mutliplication is broadcast along third axis, and dimension 0 (sequence_length) is removed by the sum
             output[t,...] = self.recurrent_cell(context_vectors, hidden_state) # (batch_size, 2*hidden_size)
 
-            hidden_state = output[t,...]
+            hidden_state = output[t,...].clone()
         
         # shape (sequence_length, batch_size, 2*hidden_size)
         return output
@@ -126,7 +125,7 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
 
 class HardGuidedAttentionDecoder(torch.nn.Module):
     def __init__(self, hidden_size=128, sequence_length=5):
-        super(SoftGuidedAttentionDecoder, self).__init__()
+        super(HardGuidedAttentionDecoder, self).__init__()
         self.sequence_length = sequence_length
         self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size)
 
@@ -135,12 +134,12 @@ class HardGuidedAttentionDecoder(torch.nn.Module):
         ## Its shape is (sequence_length, batch_size, 2*hidden_size)
         
         output = torch.zeros(*X.shape) # (sequence_length, batch_size, 2*hidden_size)
-        hidden_state = X[-1,...] # (batch_size, 2*hidden_size)
+        hidden_state = X[-1,...].clone() # (batch_size, 2*hidden_size)
 
         for t in range(self.sequence_length): # (batch_size, sequence_length)
-            context_vectors = X[t,...]
+            context_vectors = X[t,...].clone()
             output[t,...] = self.recurrent_cell(context_vectors, hidden_state)
-            hidden_state = output[t,...]
+            hidden_state = output[t,...].clone()
         
         # shape (sequence_length, batch_size, 2*hidden_size)
         return output
