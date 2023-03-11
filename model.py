@@ -97,7 +97,7 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
         super(SoftGuidedAttentionDecoder, self).__init__()
         self.sequence_length = sequence_length
         self.attention = torch.nn.Linear(4*hidden_size, 1)
-        self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size, )
+        self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size)
 
     def forward(self, X):
         ## X is the output of the encoder
@@ -115,9 +115,31 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
             attention_weights += torch.Tensor([ int(j==t) for j in range(self.sequence_length)]).repeat(X.shape[1], 1).transpose(0,1)
             attention_weights = torch.nn.functional.softmax(attention_weights, dim=0)
 
-            context_vectors = ( permute(permute(X)*permute(attention_weights)) ).sum(dim=0) # (batch_size, 2*hidden_size) since mutliplication is broadcast along third axis, and dimension 0 (sequence_length) is removed by the sum
-            output[t,...] = self.recurrent_cell(context_vectors) # (batch_size, 2*hidden_size)
+            context_vectors = ( permute(permute(X)*permute(attention_weights)) ).sum(dim=0) # (batch_size, 2*hidden_size) // mutliplication is broadcast along third axis, and dimension 0 (sequence_length) is removed by the sum
+            output[t,...] = self.recurrent_cell(context_vectors, hidden_state) # (batch_size, 2*hidden_size)
 
+            hidden_state = output[t,...]
+        
+        # shape (sequence_length, batch_size, 2*hidden_size)
+        return output
+
+
+class HardGuidedAttentionDecoder(torch.nn.Module):
+    def __init__(self, hidden_size=128, sequence_length=5):
+        super(SoftGuidedAttentionDecoder, self).__init__()
+        self.sequence_length = sequence_length
+        self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size)
+
+    def forward(self, X):
+        ## X is the output of the encoder
+        ## Its shape is (sequence_length, batch_size, 2*hidden_size)
+        
+        output = torch.zeros(*X.shape) # (sequence_length, batch_size, 2*hidden_size)
+        hidden_state = X[-1,...] # (batch_size, 2*hidden_size)
+
+        for t in range(self.sequence_length): # (batch_size, sequence_length)
+            context_vectors = X[t,...]
+            output[t,...] = self.recurrent_cell(context_vectors, hidden_state)
             hidden_state = output[t,...]
         
         # shape (sequence_length, batch_size, 2*hidden_size)
@@ -127,28 +149,13 @@ class SoftGuidedAttentionDecoder(torch.nn.Module):
 class Seq2SeqModel(torch.nn.Module):
     # Embedding, encoder, decoder, linear+softmax
 
-    def __init__(self, nb_classes, pretrained_embeddings, sequence_length=5, hidden_size=128, persona_level=True):
+    def __init__(self, pretrained_embeddings, encoder, decoder, nb_classes, hidden_size=128):
         super(Seq2SeqModel, self).__init__()
 
-        # Embedding
         self.embedder = torch.nn.Embedding.from_pretrained(pretrained_embeddings, freeze=True)
-
-        # Encoder
-        self.encoder = HierarchicalEncoder(
-            input_size = pretrained_embeddings.shape[1],
-            sequence_length = sequence_length,
-            hidden_size = hidden_size,
-            persona_level = persona_level,
-        )
-
-        # Decoder
-        self.decoder = SoftGuidedAttentionDecoder(
-            hidden_size = hidden_size,
-            sequence_length = sequence_length,
-        )
-
-        # Output
-        self.linear = torch.nn.Linear(2*hidden_size, nb_classes)
+        self.encoder = encoder
+        self.decoder = decoder
+        self.output = torch.nn.Linear(2*hidden_size, nb_classes)
 
     def forward(self, X):
         # X has shape (batch_size, sequence_length, max_sentence_length)
@@ -157,7 +164,7 @@ class Seq2SeqModel(torch.nn.Module):
         embedded = self.embedder(X) # (batch_size, sequence_length, max_sentence_length, embedding_dim)
         encoded = self.encoder(embedded, P)[0] # (sequence_length, batch_size, 2*hidden_size)
         decoded = self.decoder(encoded) # (sequence_length, batch_size, 2*hidden_size)
-        scores = self.linear(decoded) # (sequence_length, batch_size, nb_classes)
+        scores = self.output(decoded) # (sequence_length, batch_size, nb_classes)
         probas = torch.nn.functional.softmax(scores, dim=-1) # (sequence_length, batch_size, nb_classes)
         return probas.transpose(0, 1) # (batch_size, sequence_length, nb_classes)
 
