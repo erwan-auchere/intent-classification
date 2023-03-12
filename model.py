@@ -143,6 +143,30 @@ class HardGuidedAttentionDecoder(torch.nn.Module):
         
         # shape (sequence_length, batch_size, 2*hidden_size)
         return output
+    
+class VanilladAttentionDecoder(torch.nn.Module):
+    def __init__(self, hidden_size=128, sequence_length=5):
+        super(VanilladAttentionDecoder, self).__init__()
+        self.sequence_length = sequence_length
+        self.attention = torch.nn.Linear(4*hidden_size, 1)
+        self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size)
+
+    def forward(self, X):
+        ## X is the output of the encoder
+        ## Its shape is (sequence_length, batch_size, 2*hidden_size)
+        
+        output = torch.zeros(*X.shape) # (sequence_length, batch_size, 2*hidden_size)
+        hidden_state = X[-1,...].clone() # (batch_size, 2*hidden_size)
+
+        for t in range(self.sequence_length): # (batch_size, sequence_length)
+            context_vectors = X[t,...].clone()
+            attn_weights = torch.nn.functional.softmax(self.attention(torch.cat((hidden_state[0]), 1)), dim=1)
+            rnn_input = torch.cat(attn_weights[0], dim=1)
+            output[t,...] = self.recurrent_cell(rnn_input.unsqueeze(0), hidden_state)
+            hidden_state = output[t,...].clone()
+        
+        # shape (sequence_length, batch_size, 2*hidden_size)
+        return output
 
 
 class Seq2SeqModel(torch.nn.Module):
