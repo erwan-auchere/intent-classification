@@ -159,14 +159,24 @@ class VanilladAttentionDecoder(torch.nn.Module):
         hidden_state = X[-1,...].clone() # (batch_size, 2*hidden_size)
 
         for t in range(self.sequence_length): # (batch_size, sequence_length)
-            context_vectors = X[t,...].clone()
-            attn_weights = torch.nn.functional.softmax(self.attention(torch.cat((hidden_state[0]), 1)), dim=1)
-            rnn_input = torch.cat(attn_weights[0], dim=1)
-            output[t,...] = self.recurrent_cell(rnn_input.unsqueeze(0), hidden_state)
+            #  "h^d_{t-1}" is the same for all j so we repeat is along the corresponding axis
+            expanded_hidden_state = torch.stack([hidden_state for _ in range(self.sequence_length)], dim=0) # (sequence_length, batch_size, 2*hidden_size)
+            attention_layer_input = torch.cat([expanded_hidden_state, X], dim=-1) # (sequence_length, batch_size, 4*hidden_state)
+
+            attention_weights = self.attention(attention_layer_input).squeeze(dim=-1) # (sequence_length, batch_size) -> a[j,n] correspond à alpha_{t,j} pour la n-ième observation
+            attention_weights = torch.nn.functional.softmax(attention_weights, dim=0)
+            #attention_weights += torch.Tensor([ int(j==t) for j in range(self.sequence_length)]).repeat(X.shape[1], 1).transpose(0,1)
+            #attention_weights = torch.nn.functional.softmax(attention_weights, dim=0)
+
+            context_vectors = ( permute(permute(X)*permute(attention_weights)) ).sum(dim=0) # (batch_size, 2*hidden_size) // mutliplication is broadcast along third axis, and dimension 0 (sequence_length) is removed by the sum
+            output[t,...] = self.recurrent_cell(context_vectors, hidden_state) # (batch_size, 2*hidden_size)
+
             hidden_state = output[t,...].clone()
         
         # shape (sequence_length, batch_size, 2*hidden_size)
         return output
+
+
 
 
 class Seq2SeqModel(torch.nn.Module):
