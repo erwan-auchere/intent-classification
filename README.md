@@ -1,5 +1,5 @@
 # Intent classification
-link to the report https://www.overleaf.com/8533345687jrjfdvwmhmty
+[Link to the report](https://www.overleaf.com/8533345687jrjfdvwmhmty)
 
 The interaction between individuals is at the center of many organizations. In order to effectively assist their clients, companies could automate customer interaction. Therefore, finding more suitable models to meet this need appears to be a noble task. Several authors have addressed this issue with different analysis methods. 
 
@@ -14,8 +14,7 @@ This implementation is partially based on:
 
 ### Dataset
 
-[The Daily dialog](https://huggingface.co/datasets/daily_dialog) is used for training.
-
+[The Daily Dialog](https://huggingface.co/datasets/daily_dialog) is used for training.
 
 
 Data is split into train, valid and test subsets according to
@@ -24,4 +23,4 @@ Data is split into train, valid and test subsets according to
 
 1. Clone the repo: `git clone --`
 2. Install requirements: `pip install -r /requirements.txt`
-3. Run `test.ipynb` notebook
+3. Run `code.ipynb` notebook
