@@ -1,4 +1,10 @@
-# Intent classification
+
+
+# NLP Projet: Intent classification
+
+
+_Authors: Yao Pacome, Erwan AUCHERE_
+
 [Link to the report](https://www.overleaf.com/8533345687jrjfdvwmhmty)
 
 The interaction between individuals is at the center of many organizations. In order to effectively assist their clients, companies could automate customer interaction. Therefore, finding more suitable models to meet this need appears to be a noble task. Several authors have addressed this issue with different analysis methods. 
