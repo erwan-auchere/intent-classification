@@ -16,11 +16,22 @@ This implementation is partially based on:
 
 [The Daily Dialog](https://huggingface.co/datasets/daily_dialog) is used for training.
 
+A snippet of a conversation sample from the Daily Dialog corpus . Each utterance has a corresponding dialogue act label below.
+
+| Speaker |Utterances |DA label
+| -------- | -------- |-------- |
+| A | Can you study with the radio on ? | question|
+| B | No , I listen to background music . | inform|
+| A | What is the difference ?  | question|
+| B | The radio has too many comerials. | inform|
+| A| That's true , but then you have to buy a record player . | inform|
+
+
 
 Data is split into train, valid and test subsets according to
 
 ### Reproducing the results
 
-1. Clone the repo: `git clone --`
+1. Clone the repo: `git clone -- https://github.com/erwan-auchere/intent-classification.git`
 2. Install requirements: `pip install -r /requirements.txt`
 3. Run `code.ipynb` notebook
