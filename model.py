@@ -144,9 +144,9 @@ class HardGuidedAttentionDecoder(torch.nn.Module):
         # shape (sequence_length, batch_size, 2*hidden_size)
         return output
     
-class VanilladAttentionDecoder(torch.nn.Module):
+class VanillaAttentionDecoder(torch.nn.Module):
     def __init__(self, hidden_size=128, sequence_length=5):
-        super(VanilladAttentionDecoder, self).__init__()
+        super(VanillaAttentionDecoder, self).__init__()
         self.sequence_length = sequence_length
         self.attention = torch.nn.Linear(4*hidden_size, 1)
         self.recurrent_cell = torch.nn.GRUCell(2*hidden_size, 2*hidden_size)
