@@ -192,6 +192,8 @@ class Seq2SeqModel(torch.nn.Module):
 
     def forward(self, X):
         # X has shape (batch_size, sequence_length, max_sentence_length)
+        # For the dataset that we use, the speaker changes at every new utterance so P is filled with 1s
+        # For a different dataset P should be an input of the model
         P = torch.ones(*X.shape[:-1])
         # P has shape (batch_size, sequence_length)
         embedded = self.embedder(X) # (batch_size, sequence_length, max_sentence_length, embedding_dim)
