@@ -1,4 +1,4 @@
-torch==1.13.1
+torch~>2.2.0
 torchtext==0.14.1
 torchinfo==1.7.2
 datasets==2.10.1
